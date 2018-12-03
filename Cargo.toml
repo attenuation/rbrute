@@ -5,3 +5,6 @@ authors = ["Attenuation <ouyangjun1999@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+reqwest = "*"
+clap = "*"
+env_logger = "*"
