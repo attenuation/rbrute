@@ -6,7 +6,7 @@ use std::io::prelude::*;
 use std::io::{self,BufReader};
 use clap::{Arg, App};
 use reqwest::Url;
-use dns_lookup::{lookup_host,lookup_addr};
+use dns_lookup::{lookup_host,lookup_addr,LookupError};
 
 fn get_url(url: Url) -> Result<(),reqwest::Error>{
     let res = reqwest::get(url)?;
@@ -16,11 +16,26 @@ fn get_url(url: Url) -> Result<(),reqwest::Error>{
 }
 
 
-fn get_dns(hostname: &str) -> Result<(),dns_lookup::LookupError> {
+fn get_dns(hostname: &str) -> Result<(),LookupError> {
     let ips:Vec<std::net::IpAddr> = lookup_host(hostname)?;
     print!("{} ",hostname);
-    println!("{:?}",ips);
+    for ip in ips{
+        print!("{} ",ip);
+    }
+    println!("");
     Ok(())
+}
+
+fn request_url(host : &str,line: &str)-> Result<(),reqwest::Error>{
+    let rurl = host.to_string() + line;
+    println!("{}", rurl);
+    let rurl = Url::parse(&rurl).unwrap();
+    get_url(rurl)
+}
+
+fn request_dns(host: &str,line: String)-> Result<(),LookupError>{
+    let hostname = line + "." + host;
+    get_dns(&hostname)
 }
 
 
@@ -51,25 +66,21 @@ fn main() -> Result<(), Box<std::error::Error>> {
     let host = matches.value_of("url").expect("error url");
     let mode = matches.value_of("mode").expect("error mode");
     let wordlist = matches.value_of("wordlist").expect("error wordlist");
-    let mut word = File::open(wordlist)?;
+    let word = File::open(wordlist)?;
     let word = BufReader::new(word);
     for line in word.lines() {
+        let line = line.unwrap();
         match mode{
             "url" => {
-                        let rurl = host.to_string() + &line.unwrap();
-                        println!("{}", rurl);
-                        let rurl = Url::parse(&rurl)?;
-                        match get_url(rurl){
-                            Err(_) => println!("请输入正确的url"),
-                            Ok(_) => (),
-                        }
+                request_url(host, &line);
+                continue;
             },
             "dns" => {
-                let hostname = line? + "." + host;
-                get_dns(&hostname);
+                request_dns(host, line);
+                continue;
             },
             _ => {
-
+                break;
             }
         }
     }
